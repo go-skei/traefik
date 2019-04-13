@@ -1,0 +1,49 @@
+version: "3.5"
+
+networks:
+  proxy:
+    name: proxy
+    external: false
+
+services:
+  traefik_cmd:
+    container_name: traefik
+    image: traefik:1.7
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./acme.json:/acme.json
+    environment:
+      DO_AUTH_TOKEN: "${DO_AUTH_TOKEN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.basic.frontend.rule=Host:monitor.skei.dev"
+      - "traefik.basic.port=8080"
+      - "traefik.basic.protocol=http"
+      - "traefik.basic.frontend.auth.basic.users=admin:${TRAEFIK_ADMIN_HASH}"
+    command:
+      - "--loglevel=INFO"
+      - "--defaultentrypoints=http,https"
+      - "--api"
+      - "--entryPoints=Name:http Address::80 Redirect.Entrypoint:https"
+      - "--entryPoints=Name:https Address::443 TLS"
+      - "--retry"
+      - "--docker"
+      - "--docker.domain=skei.dev"
+      - "--docker.watch"
+      - "--docker.exposedbydefault=false"
+      - "--acme"
+      - "--acme.email=admin@skei.dev"
+      - "--acme.storage=acme.json"
+      - "--acme.entrypoint=https"
+      - "--acme.acmelogging"
+      - "--acme.caserver=${ACME_CASERVER}"
+      - "--acme.dnschallenge=true"
+      - "--acme.dnschallenge.provider=digitalocean"
+      - "--acme.domains=*.skei.dev"
+      - "--acme.domains=skei.dev"
