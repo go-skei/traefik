@@ -1,0 +1,6 @@
+# Ignore files containing passwords/keys.
+acme.json
+.env
+
+# Ignore vim swap files.
+*.swp
