@@ -6,7 +6,7 @@ networks:
     external: false
 
 services:
-  traefik_cmd:
+  traefik:
     container_name: traefik
     image: traefik:1.7
     restart: always
@@ -31,7 +31,7 @@ services:
       - "--defaultentrypoints=http,https"
       - "--api"
       - "--entryPoints=Name:http Address::80 Redirect.Entrypoint:https"
-      - "--entryPoints=Name:https Address::443 TLS"
+      - "--entryPoints=Name:https Address::443 TLS TLS.MinVersion:VersionTLS12 TLS.CipherSuites:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
       - "--retry"
       - "--docker"
       - "--docker.domain=skei.dev"
