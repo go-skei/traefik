@@ -25,7 +25,7 @@ services:
       - "traefik.basic.frontend.rule=Host:${TRAEFIK_URL}"
       - "traefik.basic.port=8080"
       - "traefik.basic.protocol=http"
-      - "traefik.basic.frontend.auth.basic.users=admin:${TRAEFIK_ADMIN_HASH}"
+      - "traefik.basic.frontend.auth.basic.users=${TRAEFIK_ADMIN_HASH}"
     command:
       - "--loglevel=INFO"
       - "--defaultentrypoints=http,https"
