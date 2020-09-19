@@ -8,7 +8,7 @@ networks:
 services:
   traefik:
     container_name: traefik
-    image: traefik:1.7
+    image: traefik:2.3
     restart: always
     ports:
       - "80:80"
@@ -18,32 +18,60 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./acme.json:/acme.json
+      - ./traefik.yaml:/traefik-dyn.yaml
     environment:
       DO_AUTH_TOKEN: "${DO_AUTH_TOKEN}"
     labels:
+      # Enable access.
       - "traefik.enable=true"
-      - "traefik.basic.frontend.rule=Host:${TRAEFIK_URL}"
-      - "traefik.basic.port=8080"
-      - "traefik.basic.protocol=http"
-      - "traefik.basic.frontend.auth.basic.users=${TRAEFIK_ADMIN_HASH}"
+
+      # Route all requests to TRAEFIK_URL to this service.
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_URL}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+
+      # Enable dashboard service.
+      - "traefik.http.routers.dashboard.service=api@internal"
+
+      # Add authentication as a middleware.
+      - "traefik.http.routers.dashboard.middlewares=traefikauth,secureheader"
+
+      # Add a username/password to authentication middleware.
+      - "traefik.http.middlewares.traefikauth.basicauth.users=${TRAEFIK_ADMIN_HASH}"
+
+      # Enable Let's Encrypt.
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+
+      # HSTS headers.
+      - "traefik.http.middlewares.secureheader.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.secureheader.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secureheader.headers.stsPreload=true"
+      - "traefik.http.middlewares.secureheader.headers.forceSTSHeader=true"
+
     command:
-      - "--loglevel=INFO"
-      - "--defaultentrypoints=http,https"
-      - "--api"
-      - "--entryPoints=Name:http Address::80 Redirect.Entrypoint:https"
-      - "--entryPoints=Name:https Address::443 TLS TLS.MinVersion:VersionTLS12 TLS.CipherSuites:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
-      - "--retry"
-      - "--docker"
-      - "--docker.domain=${DOMAIN}"
-      - "--docker.watch"
-      - "--docker.exposedbydefault=false"
-      - "--acme"
-      - "--acme.email=${ACME_EMAIL}"
-      - "--acme.storage=acme.json"
-      - "--acme.entrypoint=https"
-      - "--acme.acmelogging"
-      - "--acme.caserver=${ACME_CASERVER}"
-      - "--acme.dnschallenge=true"
-      - "--acme.dnschallenge.provider=digitalocean"
-      - "--acme.domains=*.${DOMAIN}"
-      - "--acme.domains=${DOMAIN}"
+      # Enable INFO level logging.
+      - "--log.level=INFO"
+
+      # Enable http and https entrypoints. Forward http to https.
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+
+      # Enable traefik dashboard access (see labels, above).
+      - "--api.dashboard=true"
+
+      # Enable docker configuration but don't enable containers by default.
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.network=proxy"
+
+      # Use Let's Encrypt with DigitalOcean DNS challenge.
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean"
+      - "--certificatesresolvers.letsencrypt.acme.caserver=${ACME_CASERVER}"
+
+      # Set dynamic configuration from file (needed for default TLS settings).
+      - "--providers.file.filename=/traefik-dyn.yaml"
+      - "--providers.file.watch=true"
