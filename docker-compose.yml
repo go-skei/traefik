@@ -20,7 +20,8 @@ services:
       - ./acme.json:/acme.json
       - ./traefik.yaml:/traefik-dyn.yaml
     environment:
-      DO_AUTH_TOKEN: "${DO_AUTH_TOKEN}"
+      DO_AUTH_TOKEN:
+      DO_PROPAGATION_TIMEOUT:
     labels:
       # Enable access.
       - "traefik.enable=true"
@@ -70,6 +71,7 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
       - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.disablePropagationCheck"
       - "--certificatesresolvers.letsencrypt.acme.caserver=${ACME_CASERVER}"
 
       # Set dynamic configuration from file (needed for default TLS settings).
