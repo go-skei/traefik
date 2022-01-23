@@ -77,3 +77,14 @@ services:
       # Set dynamic configuration from file (needed for default TLS settings).
       - "--providers.file.filename=/traefik-dyn.yaml"
       - "--providers.file.watch=true"
+
+      # Enable watchtower.
+      - "com.centurylinklabs.watchtower.scope=${COMPOSE_PROJECT_NAME}"
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --scope ${COMPOSE_PROJECT_NAME}
+    labels:
+      - "com.centurylinklabs.watchtower.scope=${COMPOSE_PROJECT_NAME}"
